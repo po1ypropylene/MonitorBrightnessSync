@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode user state
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+
+# Build output
+build/
+DerivedData/
+*.xcarchive
+*.dSYM/
+
+# Swift Package Manager / C++ package build folders
+.build/
+Packages/
+
+# Editor and local environment files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
