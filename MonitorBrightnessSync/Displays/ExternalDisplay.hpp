@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace MonitorPlus {
+namespace MonitorBrightnessSync {
 
 struct ExternalDisplay {
     CGDirectDisplayID id = 0;
@@ -14,4 +14,4 @@ struct ExternalDisplay {
     bool releasesService = false;
 };
 
-} // namespace MonitorPlus
+}

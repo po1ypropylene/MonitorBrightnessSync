@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace MonitorPlus {
+namespace MonitorBrightnessSync {
 
 float brightnessForLux(double lux, const Options &options) {
     constexpr double brightOfficeLux = 500.0;
@@ -17,4 +17,4 @@ float brightnessForLux(double lux, const Options &options) {
     return static_cast<float>(options.minimumBrightness + (normalized * range));
 }
 
-} // namespace MonitorPlus
+}

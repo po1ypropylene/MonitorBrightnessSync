@@ -2,7 +2,7 @@
 
 #include <optional>
 
-namespace MonitorPlus {
+namespace MonitorBrightnessSync {
 
 struct Options {
     double intervalSeconds = 0.25;
@@ -15,4 +15,4 @@ struct Options {
 void printUsage(const char *executableName);
 std::optional<Options> parseOptions(int argc, const char *argv[]);
 
-} // namespace MonitorPlus
+}

@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string>
 
-namespace MonitorPlus {
+namespace MonitorBrightnessSync {
 namespace {
 
 std::optional<double> parseDouble(const char *value) {
@@ -19,7 +19,7 @@ std::optional<double> parseDouble(const char *value) {
     return parsed;
 }
 
-} // namespace
+}
 
 void printUsage(const char *executableName) {
     std::cout
@@ -97,4 +97,4 @@ std::optional<Options> parseOptions(int argc, const char *argv[]) {
     return options;
 }
 
-} // namespace MonitorPlus
+}

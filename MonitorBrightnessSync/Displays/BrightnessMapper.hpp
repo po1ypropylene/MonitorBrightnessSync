@@ -2,8 +2,8 @@
 
 #include "../App/Options.hpp"
 
-namespace MonitorPlus {
+namespace MonitorBrightnessSync {
 
 float brightnessForLux(double lux, const Options &options);
 
-} // namespace MonitorPlus
+}

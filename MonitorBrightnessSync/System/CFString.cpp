@@ -1,6 +1,6 @@
 #include "CFString.hpp"
 
-namespace MonitorPlus {
+namespace MonitorBrightnessSync {
 
 CFString::CFString(const SystemAPIs &apis, const char *value)
     : apis(apis),
@@ -17,4 +17,4 @@ CFStringRef CFString::get() const {
     return string;
 }
 
-} // namespace MonitorPlus
+}

@@ -13,7 +13,17 @@
 #include <thread>
 #include <vector>
 
-namespace MonitorPlus {
+namespace MonitorBrightnessSync {
+
+namespace {
+
+#if DEBUG
+constexpr bool isDebugBuild = true;
+#else
+constexpr bool isDebugBuild = false;
+#endif
+
+}
 
 BrightnessSynchronizer::BrightnessSynchronizer(
     const Options &options,
@@ -34,7 +44,6 @@ int BrightnessSynchronizer::run() {
         return EXIT_FAILURE;
     }
 
-    const size_t displayCount = displays.size();
     if (!captureBaselines(displays)) {
         displayManager.releaseDisplayServices(displays);
         return EXIT_FAILURE;
@@ -42,11 +51,14 @@ int BrightnessSynchronizer::run() {
 
     displayManager.releaseDisplayServices(displays);
 
-    std::cout << "Syncing " << displayCount << " external display"
-              << (displayCount == 1 ? "" : "s")
-              << " every " << options.intervalSeconds << "s"
-              << (options.dryRun ? " (dry run)" : "")
-              << ". Press Ctrl-C to stop.\n";
+    if constexpr (isDebugBuild) {
+        const size_t displayCount = displays.size();
+        std::cout << "Syncing " << displayCount << " external display"
+                  << (displayCount == 1 ? "" : "s")
+                  << " every " << options.intervalSeconds << "s"
+                  << (options.dryRun ? " (dry run)" : "")
+                  << ". Press Ctrl-C to stop.\n";
+    }
 
     do {
         displays = displayManager.displays();
@@ -66,10 +78,12 @@ int BrightnessSynchronizer::run() {
             continue;
         }
 
-        std::cout << std::fixed << std::setprecision(2)
-                  << (reading->kind == AmbientLightReadingKind::Lux ? "Lux: " : "Built-in brightness: ")
-                  << reading->value
-                  << ", initial built-in: " << *initialBuiltInBrightness << "\n";
+        if constexpr (isDebugBuild) {
+            std::cout << std::fixed << std::setprecision(2)
+                      << (reading->kind == AmbientLightReadingKind::Lux ? "Lux: " : "Built-in brightness: ")
+                      << reading->value
+                      << ", initial built-in: " << *initialBuiltInBrightness << "\n";
+        }
 
         for (const ExternalDisplay &display : displays) {
             const std::optional<float> brightness = scaledBrightnessForDisplay(display, *currentBuiltInBrightness);
@@ -84,11 +98,11 @@ int BrightnessSynchronizer::run() {
             }
 
             const IOReturn result = displayManager.setBrightness(display, *brightness);
-            if (result == kIOReturnSuccess) {
-                std::cout << "  " << display.name << ": updated to " << *brightness << "\n";
-            } else {
+            if (result != kIOReturnSuccess) {
                 std::cerr << "  " << display.name << ": failed to set brightness (0x"
                           << std::hex << result << std::dec << ")\n";
+            } else if constexpr (isDebugBuild) {
+                std::cout << "  " << display.name << ": updated to " << *brightness << "\n";
             }
         }
 
@@ -137,10 +151,12 @@ bool BrightnessSynchronizer::captureBaselines(const std::vector<ExternalDisplay>
             .initialBrightness = *brightness
         });
 
-        std::cout << std::fixed << std::setprecision(2)
-                  << "Baseline " << display.name
-                  << ": built-in " << *initialBuiltInBrightness
-                  << ", external " << *brightness << "\n";
+        if constexpr (isDebugBuild) {
+            std::cout << std::fixed << std::setprecision(2)
+                      << "Baseline " << display.name
+                      << ": built-in " << *initialBuiltInBrightness
+                      << ", external " << *brightness << "\n";
+        }
     }
 
     if (displayBaselines.empty()) {
@@ -221,4 +237,4 @@ float BrightnessSynchronizer::smoothedBrightness(float targetBrightness) {
     return brightness;
 }
 
-} // namespace MonitorPlus
+}

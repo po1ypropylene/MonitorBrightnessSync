@@ -38,15 +38,31 @@ MonitorBrightnessSync --interval 1 --min 0.2 --max 0.9
 
 ## Build
 
-Open `MonitorBrightnessSync.xcodeproj` in Xcode, select the `MonitorPlus` scheme, then build the project.
+Open `MonitorBrightnessSync.xcodeproj` in Xcode, select the `MonitorBrightnessSync` scheme, then build the project.
 
-You can also build from the command line:
+### Release Binary
+
+Use the Release configuration for the binary you install as a background service. Release builds omit the recurring brightness sync progress logs that are useful while debugging but noisy when the app runs continuously.
+
+From the repository root, build with:
 
 ```sh
-xcodebuild -project MonitorBrightnessSync.xcodeproj -scheme MonitorPlus -configuration Release build
+xcodebuild -project MonitorBrightnessSync.xcodeproj -scheme MonitorBrightnessSync -configuration Release build
 ```
 
-After building, locate the `MonitorBrightnessSync` executable in Xcode's build products directory. In Xcode, you can usually find it by opening the Products group, right-clicking `MonitorBrightnessSync`, and choosing "Show in Finder".
+The executable is written under Xcode's DerivedData build products directory, usually:
+
+```text
+~/Library/Developer/Xcode/DerivedData/MonitorBrightnessSync-*/Build/Products/Release/MonitorBrightnessSync
+```
+
+In Xcode, you can also locate it from the Products group by right-clicking `MonitorBrightnessSync` and choosing "Show in Finder".
+
+For local debugging, build the Debug configuration from Xcode or run:
+
+```sh
+xcodebuild -project MonitorBrightnessSync.xcodeproj -scheme MonitorBrightnessSync -configuration Debug build
+```
 
 ## Install as a Background Service
 
@@ -76,12 +92,14 @@ To pass different runtime options, add them after the binary path:
 ./scripts/install-launch-agent.sh /path/to/MonitorBrightnessSync --interval 0.5 --min 0.2 --max 0.8
 ```
 
-Logs are written to:
+The LaunchAgent writes stdout and stderr to:
 
 ```text
 ~/Library/Logs/MonitorBrightnessSync.out.log
 ~/Library/Logs/MonitorBrightnessSync.err.log
 ```
+
+When installed from a Release binary, normal polling progress is not printed to those files.
 
 ## Manage the LaunchAgent
 

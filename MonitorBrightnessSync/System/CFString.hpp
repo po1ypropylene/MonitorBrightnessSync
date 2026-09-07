@@ -4,7 +4,7 @@
 
 #include <CoreFoundation/CoreFoundation.h>
 
-namespace MonitorPlus {
+namespace MonitorBrightnessSync {
 
 class CFString {
 public:
@@ -20,4 +20,4 @@ private:
     CFStringRef string = nullptr;
 };
 
-} // namespace MonitorPlus
+}

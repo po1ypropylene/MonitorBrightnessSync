@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-namespace MonitorPlus {
+namespace MonitorBrightnessSync {
 
 class ExternalDisplayManager {
 public:
@@ -37,4 +37,4 @@ private:
     const SystemAPIs &apis;
 };
 
-} // namespace MonitorPlus
+}

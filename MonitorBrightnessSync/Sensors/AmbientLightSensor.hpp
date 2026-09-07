@@ -7,7 +7,7 @@
 #include <optional>
 #include <string>
 
-namespace MonitorPlus {
+namespace MonitorBrightnessSync {
 
 enum class AmbientLightReadingKind {
     Lux,
@@ -44,4 +44,4 @@ private:
     std::string serviceClassName;
 };
 
-} // namespace MonitorPlus
+}

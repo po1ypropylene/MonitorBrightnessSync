@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-namespace MonitorPlus {
+namespace MonitorBrightnessSync {
 
 class BrightnessSynchronizer {
 public:
@@ -45,4 +45,4 @@ private:
     std::vector<DisplayBrightnessBaseline> displayBaselines;
 };
 
-} // namespace MonitorPlus
+}

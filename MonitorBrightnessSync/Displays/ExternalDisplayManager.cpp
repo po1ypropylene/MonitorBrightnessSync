@@ -10,14 +10,14 @@
 #include <iostream>
 #include <sstream>
 
-namespace MonitorPlus {
+namespace MonitorBrightnessSync {
 
 namespace {
 
 constexpr IOOptionBits nilOptions = 0;
 constexpr mach_port_t mainPortDefault = MACH_PORT_NULL;
 
-} // namespace
+}
 
 ExternalDisplayManager::ExternalDisplayManager(const SystemAPIs &apis) : apis(apis) {
 }
@@ -324,4 +324,4 @@ bool ExternalDisplayManager::isLikelyBuiltInDisplay(
             || prefsKey->find("AppleDisplay") != std::string::npos);
 }
 
-} // namespace MonitorPlus
+}

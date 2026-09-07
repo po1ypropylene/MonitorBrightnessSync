@@ -78,7 +78,7 @@
 			name = MonitorBrightnessSync;
 			packageProductDependencies = (
 			);
-			productName = MonitorPlus;
+			productName = MonitorBrightnessSync;
 			productReference = D0F1FF05304D90600002D1EA /* MonitorBrightnessSync */;
 			productType = "com.apple.product-type.tool";
 		};

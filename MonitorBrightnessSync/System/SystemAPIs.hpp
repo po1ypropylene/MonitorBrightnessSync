@@ -6,7 +6,7 @@
 #include <IOKit/graphics/IOGraphicsLib.h>
 #include <mach/mach.h>
 
-namespace MonitorPlus {
+namespace MonitorBrightnessSync {
 
 struct SystemAPIs {
     using CFDictionaryGetCountFunction = CFIndex (*)(CFDictionaryRef);
@@ -106,4 +106,4 @@ private:
     void resolveOptional(void *handle, const char *symbol, Function &function);
 };
 
-} // namespace MonitorPlus
+}

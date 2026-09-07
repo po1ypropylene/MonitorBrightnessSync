@@ -9,7 +9,7 @@
 #include <sstream>
 #include <vector>
 
-namespace MonitorPlus {
+namespace MonitorBrightnessSync {
 
 namespace {
 
@@ -21,7 +21,7 @@ constexpr std::array sensorServiceClasses = {
     "AppleSPUALSSealionAccessoryDriver"
 };
 
-} // namespace
+}
 
 AmbientLightSensor::AmbientLightSensor(const SystemAPIs &apis) : apis(apis) {
     for (const char *serviceClass : sensorServiceClasses) {
@@ -241,4 +241,4 @@ std::optional<double> AmbientLightSensor::numberValue(CFDictionaryRef dictionary
     return number;
 }
 
-} // namespace MonitorPlus
+}

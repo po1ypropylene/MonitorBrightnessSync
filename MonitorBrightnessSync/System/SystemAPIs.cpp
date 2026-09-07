@@ -3,7 +3,7 @@
 #include <dlfcn.h>
 #include <iostream>
 
-namespace MonitorPlus {
+namespace MonitorBrightnessSync {
 
 bool SystemAPIs::load() {
     coreFoundation = dlopen(
@@ -80,4 +80,4 @@ void SystemAPIs::resolveOptional(void *handle, const char *symbol, Function &fun
     function = reinterpret_cast<Function>(dlsym(handle, symbol));
 }
 
-} // namespace MonitorPlus
+}

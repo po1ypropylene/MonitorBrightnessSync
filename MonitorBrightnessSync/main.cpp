@@ -24,26 +24,26 @@ int main(int argc, const char *argv[]) {
     std::signal(SIGINT, handleSignal);
     std::signal(SIGTERM, handleSignal);
     
-    const std::optional<MonitorPlus::Options> parsedOptions = MonitorPlus::parseOptions(argc, argv);
+    const std::optional<MonitorBrightnessSync::Options> parsedOptions = MonitorBrightnessSync::parseOptions(argc, argv);
     if (!parsedOptions.has_value()) {
-        MonitorPlus::printUsage(argv[0]);
+        MonitorBrightnessSync::printUsage(argv[0]);
         return EXIT_FAILURE;
     }
     
-    MonitorPlus::SystemAPIs apis;
+    MonitorBrightnessSync::SystemAPIs apis;
     if (!apis.load()) {
         std::cerr << "Failed to load required macOS display and IOKit APIs.\n";
         return EXIT_FAILURE;
     }
     
-    MonitorPlus::AmbientLightSensor sensor(apis);
+    MonitorBrightnessSync::AmbientLightSensor sensor(apis);
     if (!sensor.isAvailable()) {
         std::cerr << "Ambient light sensor unavailable: " << sensor.diagnosticMessage() << "\n";
         return EXIT_FAILURE;
     }
     
-    MonitorPlus::ExternalDisplayManager displayManager(apis);
-    MonitorPlus::BrightnessSynchronizer synchronizer(
+    MonitorBrightnessSync::ExternalDisplayManager displayManager(apis);
+    MonitorBrightnessSync::BrightnessSynchronizer synchronizer(
                                                      *parsedOptions,
                                                      sensor,
                                                      displayManager,
