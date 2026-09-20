@@ -1,25 +1,153 @@
 # MonitorBrightnessSync
 
-MonitorBrightnessSync is a small macOS command-line utility that keeps external display brightness in sync with the Mac's built-in ambient light sensor.
-
-The app runs in the background, polls the ambient light sensor, maps the current light level to a brightness range, and applies that brightness to connected external displays.
+MonitorBrightnessSync keeps external display brightness in sync with the Mac's
+built-in ambient light sensor. It runs without a window, polls ambient light,
+and maps it to a configurable brightness range.
 
 ## Requirements
 
-- macOS
-- A Mac with a built-in ambient light sensor
-- At least one external display whose brightness can be controlled by macOS display APIs
-- Xcode, to build the app from source
+- macOS and a Mac with a built-in ambient light sensor
+- An external display whose brightness macOS display APIs can control
+- Xcode with the macOS SDK
 
-## Usage
+The background service uses a per-user LaunchAgent. It starts when you log in
+and runs in your graphical session. Run the scripts as your normal user,
+without `sudo`.
 
-Run the binary directly:
+## Build
+
+From the repository root:
 
 ```sh
-MonitorBrightnessSync [options]
+xcodebuild \
+  -project MonitorBrightnessSync.xcodeproj \
+  -scheme MonitorBrightnessSync \
+  -configuration Release \
+  -derivedDataPath build \
+  build
 ```
 
-Options:
+The executable is created at:
+
+```text
+build/Build/Products/Release/MonitorBrightnessSync
+```
+
+You can also select the MonitorBrightnessSync scheme in Xcode and choose
+**Product > Build**. Use Release for background installation: it omits recurring
+brightness progress logs. Use Debug for development.
+
+## Install as a background service
+
+From the repository root, run:
+
+```sh
+./scripts/install.sh
+```
+
+The installer builds Release, stops any existing service, installs the executable
+and LaunchAgent, and starts the service. It starts at login and restarts if it
+exits. No manual build or search through Xcode's DerivedData is needed.
+
+Installed files:
+
+```text
+~/Library/Application Support/MonitorBrightnessSync/MonitorBrightnessSync
+~/Library/LaunchAgents/com.monitorbrightnesssync.agent.plist
+```
+
+By default, the service polls once per second (`--interval 1`). To customize it:
+
+```sh
+./scripts/install.sh --interval 0.5 --min 0.2 --max 0.8
+```
+
+The supplied options replace the service defaults. Supply those options again
+when updating; running the installer without options restores `--interval 1`.
+Do not use `--once` or `--help` for the background service.
+
+## Service management
+
+Check status:
+
+```sh
+launchctl print "gui/$(id -u)/com.monitorbrightnesssync.agent"
+```
+
+Stop until the next login (or until you start it again):
+
+```sh
+launchctl bootout "gui/$(id -u)/com.monitorbrightnesssync.agent"
+```
+
+Start after stopping:
+
+```sh
+launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.monitorbrightnesssync.agent.plist"
+```
+
+Restart a loaded service:
+
+```sh
+launchctl kickstart -k "gui/$(id -u)/com.monitorbrightnesssync.agent"
+```
+
+A stopped service is unloaded, so start it with `bootstrap` before using
+`kickstart`. Sending a termination signal alone does not keep a `KeepAlive`
+service stopped.
+
+Logs:
+
+```text
+~/Library/Logs/MonitorBrightnessSync/output.log
+~/Library/Logs/MonitorBrightnessSync/error.log
+```
+
+Read recent errors:
+
+```sh
+tail -n 50 "$HOME/Library/Logs/MonitorBrightnessSync/error.log"
+```
+
+Release builds do not print normal polling progress. If the service repeatedly
+exits, check the error log: the app exits when the ambient light sensor is
+unavailable. Stop it while diagnosing the problem.
+
+## Update
+
+After changing the source, run the installer again:
+
+```sh
+./scripts/install.sh
+```
+
+The build completes before the running service is stopped. The executable is
+then replaced and the service started again. Include your custom runtime options
+if you use them.
+
+Existing installations keep the same service identifier. The installer replaces
+the old LaunchAgent and removes the old `~/.local/bin/MonitorBrightnessSync`
+executable. Old logs in `~/Library/Logs/MonitorBrightnessSync.out.log` and
+`MonitorBrightnessSync.err.log` are retained.
+
+## Uninstall
+
+```sh
+./scripts/uninstall.sh
+```
+
+This stops the service and removes the installed executable and LaunchAgent,
+including the executable from the old installation location. Logs are retained.
+It is safe to run the uninstaller again.
+
+## Foreground usage
+
+Stop the background service first if it is installed, to avoid two processes
+controlling brightness at the same time. Run the local build directly:
+
+```sh
+./build/Build/Products/Release/MonitorBrightnessSync --once --dry-run
+```
 
 ```text
 --interval seconds   Poll interval. Default: 0.25
@@ -30,107 +158,14 @@ Options:
 --help               Show help
 ```
 
-Example:
+## Guidance for agents
+
+See [macOS background service conventions](docs/macos-background-services.md)
+for reusable build, install, lifecycle, and documentation instructions based on
+MouseScroller.
+
+To verify the lifecycle scripts without installing a real service (requires Python 3):
 
 ```sh
-MonitorBrightnessSync --interval 1 --min 0.2 --max 0.9
+python3 tests/test_service_scripts.py
 ```
-
-## Build
-
-Open `MonitorBrightnessSync.xcodeproj` in Xcode, select the `MonitorBrightnessSync` scheme, then build the project.
-
-### Release Binary
-
-Use the Release configuration for the binary you install as a background service. Release builds omit the recurring brightness sync progress logs that are useful while debugging but noisy when the app runs continuously.
-
-From the repository root, build with:
-
-```sh
-xcodebuild -project MonitorBrightnessSync.xcodeproj -scheme MonitorBrightnessSync -configuration Release build
-```
-
-The executable is written under Xcode's DerivedData build products directory, usually:
-
-```text
-~/Library/Developer/Xcode/DerivedData/MonitorBrightnessSync-*/Build/Products/Release/MonitorBrightnessSync
-```
-
-In Xcode, you can also locate it from the Products group by right-clicking `MonitorBrightnessSync` and choosing "Show in Finder".
-
-For local debugging, build the Debug configuration from Xcode or run:
-
-```sh
-xcodebuild -project MonitorBrightnessSync.xcodeproj -scheme MonitorBrightnessSync -configuration Debug build
-```
-
-## Install as a Background Service
-
-The repository includes an installer script that copies the built executable to `~/.local/bin/MonitorBrightnessSync`, creates a per-user LaunchAgent, and starts it with `launchctl`.
-
-From the repository root, run:
-
-```sh
-./scripts/install-launch-agent.sh /path/to/MonitorBrightnessSync
-```
-
-For example:
-
-```sh
-./scripts/install-launch-agent.sh ~/Library/Developer/Xcode/DerivedData/MonitorBrightnessSync-*/Build/Products/Release/MonitorBrightnessSync
-```
-
-By default, the LaunchAgent runs the app with:
-
-```sh
---interval 1
-```
-
-To pass different runtime options, add them after the binary path:
-
-```sh
-./scripts/install-launch-agent.sh /path/to/MonitorBrightnessSync --interval 0.5 --min 0.2 --max 0.8
-```
-
-The LaunchAgent writes stdout and stderr to:
-
-```text
-~/Library/Logs/MonitorBrightnessSync.out.log
-~/Library/Logs/MonitorBrightnessSync.err.log
-```
-
-When installed from a Release binary, normal polling progress is not printed to those files.
-
-## Manage the LaunchAgent
-
-Stop the background service:
-
-```sh
-launchctl bootout "gui/$(id -u)" ~/Library/LaunchAgents/com.monitorbrightnesssync.agent.plist
-```
-
-Start it again:
-
-```sh
-launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/com.monitorbrightnesssync.agent.plist
-```
-
-Restart it:
-
-```sh
-launchctl kickstart -k "gui/$(id -u)/com.monitorbrightnesssync.agent"
-```
-
-Uninstall it:
-
-```sh
-launchctl bootout "gui/$(id -u)" ~/Library/LaunchAgents/com.monitorbrightnesssync.agent.plist 2>/dev/null || true
-rm -f ~/Library/LaunchAgents/com.monitorbrightnesssync.agent.plist
-rm -f ~/.local/bin/MonitorBrightnessSync
-```
-
-## Notes
-
-- The app exits if the ambient light sensor is unavailable.
-- It must keep running to continuously sync brightness, so installing it as a LaunchAgent is the recommended setup.
-- `--once` is useful for testing but should not be used for the background LaunchAgent.
