@@ -25,13 +25,15 @@ public:
 private:
     struct DisplayBrightnessBaseline {
         uint64_t displayKey;
-        float initialBrightness;
+        float builtInBrightness;
+        float externalBrightness;
+        std::optional<float> lastAppliedBrightness;
     };
 
     std::optional<float> builtInBrightness(const AmbientLightReading &reading) const;
     bool captureBaselines(const std::vector<ExternalDisplay> &displays);
-    std::optional<float> scaledBrightnessForDisplay(const ExternalDisplay &display, float currentBuiltInBrightness) const;
-    float scaledBrightness(float currentBuiltInBrightness, float initialExternalBrightness) const;
+    DisplayBrightnessBaseline *baselineForDisplay(const ExternalDisplay &display);
+    float scaledBrightness(float currentBuiltInBrightness, const DisplayBrightnessBaseline &baseline) const;
     uint64_t displayKey(const ExternalDisplay &display) const;
     void sleepInterruptibly() const;
     float smoothedBrightness(float targetBrightness);

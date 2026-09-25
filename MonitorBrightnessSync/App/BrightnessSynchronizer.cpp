@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
@@ -86,23 +87,44 @@ int BrightnessSynchronizer::run() {
         }
 
         for (const ExternalDisplay &display : displays) {
-            const std::optional<float> brightness = scaledBrightnessForDisplay(display, *currentBuiltInBrightness);
-            if (!brightness.has_value()) {
+            DisplayBrightnessBaseline *baseline = baselineForDisplay(display);
+            if (baseline == nullptr) {
                 std::cerr << "  " << display.name << ": no startup brightness baseline\n";
                 continue;
             }
 
-            if (options.dryRun) {
-                std::cout << "  " << display.name << ": would set brightness to " << *brightness << "\n";
+            constexpr float manualAdjustmentTolerance = 0.01F;
+            const std::optional<float> observedBrightness = displayManager.brightness(display);
+            if (baseline->lastAppliedBrightness.has_value()
+                && observedBrightness.has_value()
+                && std::abs(*observedBrightness - *baseline->lastAppliedBrightness) > manualAdjustmentTolerance) {
+                baseline->builtInBrightness = *currentBuiltInBrightness;
+                baseline->externalBrightness = *observedBrightness;
+                baseline->lastAppliedBrightness.reset();
+
+                if constexpr (isDebugBuild) {
+                    std::cout << "  " << display.name << ": keeping manual brightness "
+                              << *observedBrightness << " and updating baseline\n";
+                }
                 continue;
             }
 
-            const IOReturn result = displayManager.setBrightness(display, *brightness);
+            const float brightness = scaledBrightness(*currentBuiltInBrightness, *baseline);
+
+            if (options.dryRun) {
+                std::cout << "  " << display.name << ": would set brightness to " << brightness << "\n";
+                continue;
+            }
+
+            const IOReturn result = displayManager.setBrightness(display, brightness);
             if (result != kIOReturnSuccess) {
                 std::cerr << "  " << display.name << ": failed to set brightness (0x"
                           << std::hex << result << std::dec << ")\n";
-            } else if constexpr (isDebugBuild) {
-                std::cout << "  " << display.name << ": updated to " << *brightness << "\n";
+            } else {
+                baseline->lastAppliedBrightness = brightness;
+                if constexpr (isDebugBuild) {
+                    std::cout << "  " << display.name << ": updated to " << brightness << "\n";
+                }
             }
         }
 
@@ -148,7 +170,9 @@ bool BrightnessSynchronizer::captureBaselines(const std::vector<ExternalDisplay>
 
         displayBaselines.push_back({
             .displayKey = displayKey(display),
-            .initialBrightness = *brightness
+            .builtInBrightness = *initialBuiltInBrightness,
+            .externalBrightness = *brightness,
+            .lastAppliedBrightness = std::nullopt
         });
 
         if constexpr (isDebugBuild) {
@@ -167,28 +191,27 @@ bool BrightnessSynchronizer::captureBaselines(const std::vector<ExternalDisplay>
     return true;
 }
 
-std::optional<float> BrightnessSynchronizer::scaledBrightnessForDisplay(
-    const ExternalDisplay &display,
-    float currentBuiltInBrightness
-) const {
+BrightnessSynchronizer::DisplayBrightnessBaseline *BrightnessSynchronizer::baselineForDisplay(
+    const ExternalDisplay &display
+) {
     const uint64_t key = displayKey(display);
-    for (const DisplayBrightnessBaseline &baseline : displayBaselines) {
+    for (DisplayBrightnessBaseline &baseline : displayBaselines) {
         if (baseline.displayKey == key) {
-            return scaledBrightness(currentBuiltInBrightness, baseline.initialBrightness);
+            return &baseline;
         }
     }
 
-    return std::nullopt;
+    return nullptr;
 }
 
 float BrightnessSynchronizer::scaledBrightness(
     float currentBuiltInBrightness,
-    float initialExternalBrightness
+    const DisplayBrightnessBaseline &baseline
 ) const {
     constexpr float epsilon = 0.001F;
-    const float initialBuiltIn = std::clamp(*initialBuiltInBrightness, 0.0F, 1.0F);
+    const float initialBuiltIn = std::clamp(baseline.builtInBrightness, 0.0F, 1.0F);
     const float currentBuiltIn = std::clamp(currentBuiltInBrightness, 0.0F, 1.0F);
-    const float initialExternal = std::clamp(initialExternalBrightness, 0.0F, 1.0F);
+    const float initialExternal = std::clamp(baseline.externalBrightness, 0.0F, 1.0F);
 
     if (currentBuiltIn >= initialBuiltIn) {
         if (initialBuiltIn >= 1.0F - epsilon) {
