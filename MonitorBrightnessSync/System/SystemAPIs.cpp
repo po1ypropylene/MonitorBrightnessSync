@@ -38,6 +38,10 @@ bool SystemAPIs::load() {
         && resolve(coreFoundation, "CFStringCreateWithCString", CFStringCreateWithCString)
         && resolve(coreFoundation, "CFStringGetCString", CFStringGetCString)
         && resolve(coreFoundation, "CFStringGetTypeID", CFStringGetTypeID)
+        && resolve(coreFoundation, "CFRunLoopGetCurrent", CFRunLoopGetCurrent)
+        && resolve(coreFoundation, "CFRunLoopAddSource", CFRunLoopAddSource)
+        && resolve(coreFoundation, "CFRunLoopRemoveSource", CFRunLoopRemoveSource)
+        && resolve(coreFoundation, "CFRunLoopRunInMode", CFRunLoopRunInMode)
         && resolve(coreGraphics, "CGDisplayIOServicePort", CGDisplayIOServicePort)
         && resolve(coreGraphics, "CGDisplayIsBuiltin", CGDisplayIsBuiltin)
         && resolve(coreGraphics, "CGGetActiveDisplayList", CGGetActiveDisplayList)
@@ -54,7 +58,12 @@ bool SystemAPIs::load() {
         && resolve(ioKit, "IOServiceGetMatchingServices", IOServiceGetMatchingServices)
         && resolve(ioKit, "IOServiceGetMatchingService", IOServiceGetMatchingService)
         && resolve(ioKit, "IOServiceMatching", IOServiceMatching)
-        && resolve(ioKit, "IOServiceOpen", IOServiceOpen);
+        && resolve(ioKit, "IOServiceOpen", IOServiceOpen)
+        && resolve(ioKit, "IORegisterForSystemPower", IORegisterForSystemPower)
+        && resolve(ioKit, "IODeregisterForSystemPower", IODeregisterForSystemPower)
+        && resolve(ioKit, "IOAllowPowerChange", IOAllowPowerChange)
+        && resolve(ioKit, "IONotificationPortGetRunLoopSource", IONotificationPortGetRunLoopSource)
+        && resolve(ioKit, "IONotificationPortDestroy", IONotificationPortDestroy);
 
     if (displayServices != nullptr) {
         resolveOptional(displayServices, "DisplayServicesGetBrightness", DisplayServicesGetBrightness);

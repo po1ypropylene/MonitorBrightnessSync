@@ -4,6 +4,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitLib.h>
 #include <IOKit/graphics/IOGraphicsLib.h>
+#include <IOKit/pwr_mgt/IOPMLib.h>
 #include <mach/mach.h>
 
 namespace MonitorBrightnessSync {
@@ -74,6 +75,10 @@ struct SystemAPIs {
     CFStringCreateWithCStringFunction CFStringCreateWithCString = nullptr;
     CFStringGetCStringFunction CFStringGetCString = nullptr;
     CFStringGetTypeIDFunction CFStringGetTypeID = nullptr;
+    decltype(&::CFRunLoopGetCurrent) CFRunLoopGetCurrent = nullptr;
+    decltype(&::CFRunLoopAddSource) CFRunLoopAddSource = nullptr;
+    decltype(&::CFRunLoopRemoveSource) CFRunLoopRemoveSource = nullptr;
+    decltype(&::CFRunLoopRunInMode) CFRunLoopRunInMode = nullptr;
 
     CGDisplayIOServicePortFunction CGDisplayIOServicePort = nullptr;
     CGDisplayIsBuiltinFunction CGDisplayIsBuiltin = nullptr;
@@ -95,6 +100,11 @@ struct SystemAPIs {
     IOServiceGetMatchingServiceFunction IOServiceGetMatchingService = nullptr;
     IOServiceMatchingFunction IOServiceMatching = nullptr;
     IOServiceOpenFunction IOServiceOpen = nullptr;
+    decltype(&::IORegisterForSystemPower) IORegisterForSystemPower = nullptr;
+    decltype(&::IODeregisterForSystemPower) IODeregisterForSystemPower = nullptr;
+    decltype(&::IOAllowPowerChange) IOAllowPowerChange = nullptr;
+    decltype(&::IONotificationPortGetRunLoopSource) IONotificationPortGetRunLoopSource = nullptr;
+    decltype(&::IONotificationPortDestroy) IONotificationPortDestroy = nullptr;
 
     bool load();
 

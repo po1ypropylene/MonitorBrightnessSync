@@ -3,6 +3,7 @@
 #include "Options.hpp"
 #include "../Displays/ExternalDisplayManager.hpp"
 #include "../Sensors/AmbientLightSensor.hpp"
+#include "../System/SystemPowerMonitor.hpp"
 
 #include <atomic>
 #include <optional>
@@ -17,6 +18,7 @@ public:
         const Options &options,
         AmbientLightSensor &sensor,
         ExternalDisplayManager &displayManager,
+        SystemPowerMonitor &powerMonitor,
         const std::atomic_bool &isRunning
     );
 
@@ -28,6 +30,7 @@ private:
         float builtInBrightness;
         float externalBrightness;
         std::optional<float> lastAppliedBrightness;
+        uint64_t wakeGeneration = 0;
     };
 
     std::optional<float> builtInBrightness(const AmbientLightReading &reading) const;
@@ -41,6 +44,7 @@ private:
     const Options &options;
     AmbientLightSensor &sensor;
     ExternalDisplayManager &displayManager;
+    SystemPowerMonitor &powerMonitor;
     const std::atomic_bool &isRunning;
     std::optional<float> currentSmoothedBrightness;
     std::optional<float> initialBuiltInBrightness;

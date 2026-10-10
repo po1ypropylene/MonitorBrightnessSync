@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <sstream>
 #include <vector>
 
@@ -129,6 +130,22 @@ std::optional<AmbientLightReading> AmbientLightSensor::readBuiltInBrightness() c
         return reading;
     }
 
+    // Also works when an ambient-light service is active and no backlight
+    // registry service was retained during initialization.
+    if (const auto displayID = builtInDisplayID()) {
+        const io_service_t service = apis.CGDisplayIOServicePort(*displayID);
+        CFString brightnessKey(apis, kIODisplayBrightnessKey);
+        float brightness = 0.0F;
+        if (service != IO_OBJECT_NULL && brightnessKey.get() != nullptr
+            && apis.IODisplayGetFloatParameter(service, 0, brightnessKey.get(), &brightness) == kIOReturnSuccess
+            && std::isfinite(brightness)) {
+            return AmbientLightReading{
+                .kind = AmbientLightReadingKind::BuiltInBrightness,
+                .value = std::clamp(static_cast<double>(brightness), 0.0, 1.0)
+            };
+        }
+    }
+
     if (backlightService == IO_OBJECT_NULL) {
         return std::nullopt;
     }
@@ -160,7 +177,8 @@ std::optional<AmbientLightReading> AmbientLightSensor::readBuiltInBrightness() c
             const std::optional<double> value = numberValue(brightness, "value");
             const std::optional<double> maximum = numberValue(brightness, "max");
 
-            if (value.has_value() && maximum.has_value() && *maximum > 0.0) {
+            if (value.has_value() && maximum.has_value()
+                && std::isfinite(*value) && std::isfinite(*maximum) && *maximum > 0.0) {
                 reading = AmbientLightReading{
                     .kind = AmbientLightReadingKind::BuiltInBrightness,
                     .value = std::clamp(*value / *maximum, 0.0, 1.0)
@@ -184,7 +202,7 @@ std::optional<AmbientLightReading> AmbientLightSensor::readBuiltInDisplayService
     }
 
     float brightness = 0.0F;
-    if (apis.DisplayServicesGetBrightness(*displayID, &brightness) != 0) {
+    if (apis.DisplayServicesGetBrightness(*displayID, &brightness) != 0 || !std::isfinite(brightness)) {
         return std::nullopt;
     }
 

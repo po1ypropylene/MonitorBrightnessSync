@@ -1,8 +1,21 @@
 # MonitorBrightnessSync
 
 MonitorBrightnessSync keeps external display brightness in sync with the Mac's
-built-in ambient light sensor. It runs without a window, polls ambient light,
-and maps it to a configurable brightness range.
+built-in ambient light sensor (or built-in display brightness when the sensor
+cannot be accessed). It runs without a window and follows changes relative to
+each external display's initial brightness. Manual external brightness changes
+establish a new baseline.
+
+After the Mac wakes from system sleep, the app waits two seconds for display
+services to settle, then sets each external monitor to the built-in display's
+actual normalized brightness (0–1). For example, built-in brightness `0.6`
+sets each external display to `0.6`. This resets the relative baseline so earlier
+offsets do not carry over. Failed reads or writes retry on subsequent polls;
+monitors that reconnect later are aligned when they become available.
+
+The wake reset uses the actual built-in value, regardless of `--min` and `--max`.
+Those options configure the ambient-light mapping when lux readings are used.
+Equal normalized values can look different on displays with different panels.
 
 ## Requirements
 
@@ -168,4 +181,11 @@ To verify the lifecycle scripts without installing a real service (requires Pyth
 
 ```sh
 python3 tests/test_service_scripts.py
+```
+
+To verify brightness syncing and sleep/wake behavior with simulated display and
+power APIs (requires Python 3 and Xcode command line tools):
+
+```sh
+python3 tests/test_brightness_sync.py
 ```

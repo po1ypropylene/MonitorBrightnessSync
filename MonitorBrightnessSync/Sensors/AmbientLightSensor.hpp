@@ -29,10 +29,10 @@ public:
     bool isAvailable() const;
     const std::string &diagnosticMessage() const;
     std::optional<AmbientLightReading> read() const;
+    std::optional<AmbientLightReading> readBuiltInBrightness() const;
 
 private:
     std::optional<AmbientLightReading> readLux() const;
-    std::optional<AmbientLightReading> readBuiltInBrightness() const;
     std::optional<AmbientLightReading> readBuiltInDisplayServicesBrightness() const;
     std::optional<CGDirectDisplayID> builtInDisplayID() const;
     std::optional<double> numberValue(CFDictionaryRef dictionary, const char *key) const;

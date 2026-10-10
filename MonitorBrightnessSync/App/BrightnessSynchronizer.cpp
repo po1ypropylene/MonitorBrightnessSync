@@ -30,10 +30,12 @@ BrightnessSynchronizer::BrightnessSynchronizer(
     const Options &options,
     AmbientLightSensor &sensor,
     ExternalDisplayManager &displayManager,
+    SystemPowerMonitor &powerMonitor,
     const std::atomic_bool &isRunning
 ) : options(options),
     sensor(sensor),
     displayManager(displayManager),
+    powerMonitor(powerMonitor),
     isRunning(isRunning) {
 }
 
@@ -62,6 +64,12 @@ int BrightnessSynchronizer::run() {
     }
 
     do {
+        powerMonitor.processEvents(0.0);
+        if (!powerMonitor.canAdjustBrightness()) {
+            sleepInterruptibly();
+            continue;
+        }
+
         displays = displayManager.displays();
         const std::optional<AmbientLightReading> reading = sensor.read();
         if (!reading.has_value()) {
@@ -86,10 +94,64 @@ int BrightnessSynchronizer::run() {
                       << ", initial built-in: " << *initialBuiltInBrightness << "\n";
         }
 
+        std::optional<float> absoluteWakeBrightness;
+        bool readWakeBrightness = false;
         for (const ExternalDisplay &display : displays) {
             DisplayBrightnessBaseline *baseline = baselineForDisplay(display);
+            if (baseline == nullptr && powerMonitor.wakeGeneration() > 0) {
+                // A monitor can return with a new display ID after waking.
+                displayBaselines.push_back({
+                    .displayKey = displayKey(display),
+                    .builtInBrightness = *currentBuiltInBrightness,
+                    .externalBrightness = 0.0F,
+                    .lastAppliedBrightness = std::nullopt
+                });
+                baseline = &displayBaselines.back();
+            }
             if (baseline == nullptr) {
                 std::cerr << "  " << display.name << ": no startup brightness baseline\n";
+                continue;
+            }
+
+            if (baseline->wakeGeneration != powerMonitor.wakeGeneration()) {
+                if (!readWakeBrightness) {
+                    if (reading->kind == AmbientLightReadingKind::BuiltInBrightness) {
+                        absoluteWakeBrightness = currentBuiltInBrightness;
+                    } else {
+                        const auto builtInReading = sensor.readBuiltInBrightness();
+                        if (builtInReading.has_value()) {
+                            absoluteWakeBrightness = builtInBrightness(*builtInReading);
+                        }
+                    }
+                    readWakeBrightness = true;
+                }
+                if (!absoluteWakeBrightness.has_value()) {
+                    std::cerr << "  " << display.name
+                              << ": built-in brightness unavailable after wake; will retry\n";
+                    continue;
+                }
+
+                if (options.dryRun) {
+                    std::cout << "  " << display.name << ": would align brightness after wake to "
+                              << *absoluteWakeBrightness << "\n";
+                } else {
+                    const IOReturn result = displayManager.setBrightness(display, *absoluteWakeBrightness);
+                    if (result != kIOReturnSuccess) {
+                        std::cerr << "  " << display.name << ": failed to align brightness after wake (0x"
+                                  << std::hex << result << std::dec << "); will retry\n";
+                        continue;
+                    }
+                    if constexpr (isDebugBuild) {
+                        std::cout << "  " << display.name << ": aligned brightness after wake to "
+                                  << *absoluteWakeBrightness << "\n";
+                    }
+                }
+
+                baseline->builtInBrightness = *currentBuiltInBrightness;
+                baseline->externalBrightness = *absoluteWakeBrightness;
+                baseline->lastAppliedBrightness = options.dryRun
+                    ? std::nullopt : absoluteWakeBrightness;
+                baseline->wakeGeneration = powerMonitor.wakeGeneration();
                 continue;
             }
 
@@ -139,6 +201,9 @@ int BrightnessSynchronizer::run() {
 }
 
 std::optional<float> BrightnessSynchronizer::builtInBrightness(const AmbientLightReading &reading) const {
+    if (!std::isfinite(reading.value)) {
+        return std::nullopt;
+    }
     if (reading.kind == AmbientLightReadingKind::BuiltInBrightness) {
         return std::clamp(static_cast<float>(reading.value), 0.0F, 1.0F);
     }
@@ -243,11 +308,17 @@ uint64_t BrightnessSynchronizer::displayKey(const ExternalDisplay &display) cons
 }
 
 void BrightnessSynchronizer::sleepInterruptibly() const {
+    const uint64_t generation = powerMonitor.wakeGeneration();
+    const double interval = powerMonitor.canAdjustBrightness() ? options.intervalSeconds : 0.1;
     const auto deadline = std::chrono::steady_clock::now()
-        + std::chrono::duration<double>(options.intervalSeconds);
+        + std::chrono::duration<double>(interval);
 
     while (isRunning && std::chrono::steady_clock::now() < deadline) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        const double remaining = std::chrono::duration<double>(deadline - std::chrono::steady_clock::now()).count();
+        powerMonitor.processEvents(std::clamp(remaining, 0.0, 0.1));
+        if (powerMonitor.wakeGeneration() != generation) {
+            break;
+        }
     }
 }
 

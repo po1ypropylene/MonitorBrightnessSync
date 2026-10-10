@@ -3,6 +3,7 @@
 #include "Displays/ExternalDisplayManager.hpp"
 #include "Sensors/AmbientLightSensor.hpp"
 #include "System/SystemAPIs.hpp"
+#include "System/SystemPowerMonitor.hpp"
 
 #include <atomic>
 #include <csignal>
@@ -43,10 +44,16 @@ int main(int argc, const char *argv[]) {
     }
     
     MonitorBrightnessSync::ExternalDisplayManager displayManager(apis);
+    MonitorBrightnessSync::SystemPowerMonitor powerMonitor(apis);
+    if (!powerMonitor.isAvailable()) {
+        std::cerr << "Failed to register for system sleep/wake notifications.\n";
+        return EXIT_FAILURE;
+    }
     MonitorBrightnessSync::BrightnessSynchronizer synchronizer(
                                                      *parsedOptions,
                                                      sensor,
                                                      displayManager,
+                                                     powerMonitor,
                                                      isRunning
                                                      );
     
